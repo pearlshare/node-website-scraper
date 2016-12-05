@@ -40,6 +40,7 @@
     "fs-extra": "^1.0.0",
     "lodash": "^4.11.1",
     "normalize-url": "^1.5.3",
+    "phantomjs-prebuilt": "^2.1.13",
     "request": "^2.42.0",
     "srcset": "^1.0.0"
   },
