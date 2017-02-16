@@ -15,6 +15,9 @@ Download website to a local directory (including all css, images, js, etc.)
 
 You can try it in [demo app](https://scraper.nepochataya.pp.ua/) ([source](https://github.com/s0ph1e/web-scraper))
 
+**Note:** dynamic websites (where content is loaded by js) may be saved not correctly because `website-scraper` doesn't execute js, it only parses http responses for html and css files.
+
+
 ## Installation
 ```
 npm install website-scraper
@@ -22,19 +25,19 @@ npm install website-scraper
 
 ## Usage
 ```javascript
-var scraper = require('website-scraper');
+var scrape = require('website-scraper');
 var options = {
   urls: ['http://nodejs.org/'],
   directory: '/path/to/save/',
 };
 
 // with callback
-scraper.scrape(options, function (error, result) {
+scrape(options, function (error, result) {
 	/* some code here */
 });
 
 // or with promise
-scraper.scrape(options).then(function (result) {
+scrape(options).then(function (result) {
 	/* some code here */
 });
 ```
@@ -56,7 +59,7 @@ Makes requests to `urls` and saves all files found with `sources` to `directory`
  - `request`: object, custom options for [request](https://github.com/request/request#requestoptions-callback) *(optional, see example below)*
  - `recursive`: boolean, if `true` scraper will follow anchors in html files. Don't forget to set `maxDepth` to avoid infinite downloading *(optional, see example below)*
  - `maxDepth`: positive number, maximum allowed depth for dependencies *(optional, see example below)*
- - `ignoreErrors`: boolean, if `true` scraper will continue downloading resources after error occured, if `false` - scraper will finish process and return error *(optional, default: false)*
+ - `ignoreErrors`: boolean, if `true` scraper will continue downloading resources after error occured, if `false` - scraper will finish process and return error *(optional, default: true)*
  
 Default options you can find in [lib/config/defaults.js](https://github.com/s0ph1e/node-website-scraper/blob/master/lib/config/defaults.js).
 
@@ -67,7 +70,7 @@ Default options you can find in [lib/config/defaults.js](https://github.com/s0ph
   - `result`: if error - `null`, if success - array of [Resource](https://github.com/s0ph1e/node-website-scraper/blob/master/lib/resource.js) objects containing:
     - `url`: url of loaded page
     - `filename`: filename where page was saved (relative to `directory`)
-    - `assets`: array of children Resources
+    - `children`: array of children Resources
 
 ### Filename Generators
 The filename generator determines where the scraped files are saved.
@@ -98,8 +101,8 @@ and separate files into directories:
   - `css` for .css (full path `/path/to/save/css`)
 
 ```javascript
-var scraper = require('website-scraper');
-scraper.scrape({
+var scrape = require('website-scraper');
+scrape({
   urls: [
     'http://nodejs.org/',	// Will be saved with default filename 'index.html'
     {url: 'http://nodejs.org/about', filename: 'about.html'},
@@ -132,8 +135,8 @@ scraper.scrape({
 ```javascript
 // Links from example.com will be followed
 // Links from links will be ignored because theirs depth = 2 is greater than maxDepth
-var scraper = require('website-scraper');
-scraper.scrape({
+var scrape = require('website-scraper');
+scrape({
   urls: ['http://example.com/'],
   directory: '/path/to/save',
   recursive: true,
@@ -144,8 +147,8 @@ scraper.scrape({
 #### Example 3. Filtering out external resources
 ```javascript
 // Links to other websites are filtered out by the urlFilter
-var scraper = require('website-scraper');
-scraper.scrape({
+var scrape = require('website-scraper');
+scrape({
   urls: ['http://example.com/'],
   urlFilter: function(url){
     return url.indexOf('http://example.com') === 0;
@@ -159,8 +162,8 @@ scraper.scrape({
 // Downloads all the crawlable files of example.com.
 // The files are saved in the same structure as the structure of the website, by using the `bySiteStructure` filenameGenerator.
 // Links to other websites are filtered out by the urlFilter
-var scraper = require('website-scraper');
-scraper.scrape({
+var scrape = require('website-scraper');
+scrape({
   urls: ['http://example.com/'],
   urlFilter: function(url){
       return url.indexOf('http://example.com') === 0;

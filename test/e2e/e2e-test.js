@@ -1,5 +1,5 @@
 var should = require('should');
-var scraper = require('../../index');
+var scrape = require('../../index');
 var URL = require('url');
 var fs = require('fs-extra');
 var _ = require('lodash');
@@ -20,12 +20,24 @@ describe('E2E', function() {
 
 	urls.forEach(function(url) {
 		describe(url, function() {
-			it('should be successfully scraped', function() {
+			it('should be successfully scraped with byType filename generator', function() {
 				var scraperOptions = _.clone(options);
 				var hostname = URL.parse(url).hostname;
-				scraperOptions.directory = resultDirname + '/' + hostname;
+				scraperOptions.directory = resultDirname + '/' + hostname + '-byType';
 				scraperOptions.urls = [ { url: url, filename: 'index.html' } ];
-				return scraper.scrape(scraperOptions).then(function(result) {
+				scraperOptions.filenameGenerator = 'byType';
+				return scrape(scraperOptions).then(function(result) {
+					result.should.be.ok();
+				});
+			});
+
+			it('should be successfully scraped with bySiteStructure filename generator', function() {
+				var scraperOptions = _.clone(options);
+				var hostname = URL.parse(url).hostname;
+				scraperOptions.directory = resultDirname + '/' + hostname + '-bySiteStructure';
+				scraperOptions.urls = [ { url: url } ];
+				scraperOptions.filenameGenerator = 'bySiteStructure';
+				return scrape(scraperOptions).then(function(result) {
 					result.should.be.ok();
 				});
 			});

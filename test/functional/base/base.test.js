@@ -2,11 +2,11 @@ require('should');
 var nock = require('nock');
 var fs = require('fs-extra');
 var cheerio = require('cheerio');
-var scraper = require('../../index');
-var Resource = require('../../lib/resource');
+var scrape = require('../../../index');
+var Resource = require('../../../lib/resource');
 
-var testDirname = __dirname + '/.base';
-var mockDirname = __dirname + '/mocks/base';
+var testDirname = __dirname + '/.tmp';
+var mockDirname = __dirname + '/mocks';
 
 describe('Functional base', function() {
 
@@ -21,7 +21,7 @@ describe('Functional base', function() {
 		fs.removeSync(testDirname);
 	});
 
-	it('should load multiple urls to single directory with all specified sources', function(done) {
+	it('should load multiple urls to single directory with all specified sources', function () {
 		var options = {
 			urls: [
 				'http://example.com/',   // Will be saved with default filename 'index.html'
@@ -38,7 +38,8 @@ describe('Functional base', function() {
 			sources: [
 				{ selector: 'img', attr: 'src' },
 				{ selector: 'link[rel="stylesheet"]', attr: 'href' },
-				{ selector: 'script', attr: 'src' }
+				{ selector: 'script', attr: 'src' },
+				{ selector: 'style' }
 			]
 		};
 
@@ -64,24 +65,24 @@ describe('Functional base', function() {
 		// mocks for blog.html
 		nock('http://blog.example.com/').get('/files/fail-1.png').replyWithError('something awful happened');
 
-		scraper.scrape(options).then(function(result) {
+		return scrape(options).then(function(result) {
 			// should return right result
 			result.should.be.instanceOf(Array).and.have.length(3);
 
 			result[0].should.have.properties({ url: 'http://example.com/', filename: 'index.html' });
-			result[0].should.have.properties('assets');
-			result[0].assets.should.be.instanceOf(Array).and.have.length(4);
-			result[0].assets[0].should.be.instanceOf(Resource);
+			result[0].should.have.properties('children');
+			result[0].children.should.be.instanceOf(Array).and.have.length(4);
+			result[0].children[0].should.be.instanceOf(Resource);
 
 			result[1].should.have.properties({ url: 'http://example.com/about', filename: 'about.html' });
-			result[1].should.have.properties('assets');
-			result[1].assets.should.be.instanceOf(Array).and.have.length(4);
-			result[1].assets[0].should.be.instanceOf(Resource);
+			result[1].should.have.properties('children');
+			result[1].children.should.be.instanceOf(Array).and.have.length(4);
+			result[1].children[0].should.be.instanceOf(Resource);
 
 			result[2].should.have.properties({ url: 'http://blog.example.com/', filename: 'blog.html' }); // url after redirect
-			result[2].should.have.properties('assets');
-			result[2].assets.should.be.instanceOf(Array).and.have.length(1);
-			result[2].assets[0].should.be.instanceOf(Resource);
+			result[2].should.have.properties('children');
+			result[2].children.should.be.instanceOf(Array).and.have.length(1);
+			result[2].children[0].should.be.instanceOf(Resource);
 
 			// should create directory and subdirectories
 			fs.existsSync(testDirname).should.be.eql(true);
@@ -133,8 +134,6 @@ describe('Functional base', function() {
 			// should not replace not loaded files
 			$ = cheerio.load(fs.readFileSync(testDirname + '/blog.html').toString());
 			$('img').attr('src').should.be.eql('files/fail-1.png');
-
-			done();
-		}).catch(done);
+		});
 	});
 });

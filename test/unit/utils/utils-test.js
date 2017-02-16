@@ -1,9 +1,9 @@
 var should = require('should');
 var _ = require('lodash');
-var utils = require('../../lib/utils');
+var utils = require('../../../lib/utils');
 var Promise = require('bluebird');
 
-describe('Common utils', function () {
+describe('Utils', function () {
 	describe('#isUrl(url)', function () {
 		it('should return true if url starts with "http[s]://"', function () {
 			utils.isUrl('http://google.com').should.be.true();
@@ -48,28 +48,31 @@ describe('Common utils', function () {
 
 	describe('#getFilenameFromUrl(url)', function () {
 		it('should return last path item as filename & trim all after first ? or #', function () {
-			utils.getFilenameFromUrl('http://example.com/index.html').should.equalFileSystemPath('index.html');
-			utils.getFilenameFromUrl('http://example.com/p/a/t/h/index.html').should.equalFileSystemPath('index.html');
-			utils.getFilenameFromUrl('http://example.com/index.html?12').should.equalFileSystemPath('index.html');
-			utils.getFilenameFromUrl('http://example.com/index.html#t?12').should.equalFileSystemPath('index.html');
-			utils.getFilenameFromUrl('http://example.com/index.html?12#t').should.equalFileSystemPath('index.html');
-			utils.getFilenameFromUrl('http://example.com/?12_jdlsk').should.be.empty();
-			utils.getFilenameFromUrl('http://example.com/#index.html').should.be.empty();
-			utils.getFilenameFromUrl('http://example.com/').should.be.empty();
+			utils.getFilenameFromUrl('http://example.com/index.html').should.equal('index.html');
+			utils.getFilenameFromUrl('http://example.com/p/a/t/h/index.html').should.equal('index.html');
+			utils.getFilenameFromUrl('http://example.com/index.html?12').should.equal('index.html');
+			utils.getFilenameFromUrl('http://example.com/index.html#t?12').should.equal('index.html');
+			utils.getFilenameFromUrl('http://example.com/index.html?12#t').should.equal('index.html');
+			utils.getFilenameFromUrl('http://example.com/?12_jdlsk').should.equal('');
+			utils.getFilenameFromUrl('http://example.com/#index.html').should.equal('');
+			utils.getFilenameFromUrl('http://example.com/').should.equal('');
 		});
 		it('should return unconverted filename if there are no ?,#', function () {
-			utils.getFilenameFromUrl('index.html').should.equalFileSystemPath('index.html');
+			utils.getFilenameFromUrl('index.html').should.equal('index.html');
+		});
+		it('should decode escaped chars', function () {
+			utils.getFilenameFromUrl('https://example.co/logo-mobile%20(1).svg?q=650').should.equal('logo-mobile (1).svg');
 		});
 	});
 
 	describe('#getFilepathFromUrl', function () {
 		it('should return empty sting if url has no pathname', function() {
-			utils.getFilepathFromUrl('http://example.com').should.be.empty();
-			utils.getFilepathFromUrl('http://example.com/').should.be.empty();
-			utils.getFilepathFromUrl('http://example.com?').should.be.empty();
-			utils.getFilepathFromUrl('http://example.com?abc=3').should.be.empty();
-			utils.getFilepathFromUrl('http://example.com#').should.be.empty();
-			utils.getFilepathFromUrl('http://example.com#test').should.be.empty();
+			utils.getFilepathFromUrl('http://example.com').should.equal('');
+			utils.getFilepathFromUrl('http://example.com/').should.equal('');
+			utils.getFilepathFromUrl('http://example.com?').should.equal('');
+			utils.getFilepathFromUrl('http://example.com?abc=3').should.equal('');
+			utils.getFilepathFromUrl('http://example.com#').should.equal('');
+			utils.getFilepathFromUrl('http://example.com#test').should.equal('');
 		});
 		it('should return path if url has pathname', function() {
 			utils.getFilepathFromUrl('http://example.com/some/path').should.equal('some/path');
@@ -80,6 +83,13 @@ describe('Common utils', function () {
 		it('should not contain trailing slash', function() {
 			utils.getFilepathFromUrl('http://example.com/some/path/').should.equal('some/path');
 			utils.getFilepathFromUrl('http://example.com/some/path/file.css/').should.equal('some/path/file.css');
+		});
+		it('should normalize slashes', function() {
+			utils.getFilepathFromUrl('http://example.com///some//path').should.equal('some/path');
+			utils.getFilepathFromUrl('http://example.com//////////file.css/').should.equal('file.css');
+		});
+		it('should decode escaped chars', function () {
+			utils.getFilepathFromUrl('https://example.co/logo/logo-mobile%20(1).svg?q=650').should.equal('logo/logo-mobile (1).svg');
 		});
 	});
 
@@ -169,6 +179,45 @@ describe('Common utils', function () {
 			return utils.waitAllFulfilled([p1, p2]).then(function() {
 				should(true).be.eql(true);
 			});
+		});
+	});
+
+	describe('#isUriSchemaSupported', function() {
+		it('should return false for mailto:', function() {
+			should(utils.isUriSchemaSupported('mailto:test@test.com')).be.eql(false);
+		});
+
+		it('should return false for javascript:', function() {
+			should(utils.isUriSchemaSupported('javascript:alert("Hi!")')).be.eql(false);
+		});
+
+		it('should return false for skype:', function() {
+			should(utils.isUriSchemaSupported('skype:skype_name?action')).be.eql(false);
+		});
+
+		it('should return true for http:', function() {
+			should(utils.isUriSchemaSupported('http://example.com')).be.eql(true);
+		});
+
+		it('should return true for https:', function() {
+			should(utils.isUriSchemaSupported('https://example.com')).be.eql(true);
+		});
+
+		it('should return true for relative paths', function() {
+			should(utils.isUriSchemaSupported('index.html')).be.eql(true);
+		});
+	});
+
+	describe('#decodeHtmlEntities', function() {
+		it('should return empty string if not string passed', function() {
+			should(utils.decodeHtmlEntities(null)).be.eql('');
+			should(utils.decodeHtmlEntities({})).be.eql('');
+			should(utils.decodeHtmlEntities([])).be.eql('');
+			should(utils.decodeHtmlEntities()).be.eql('');
+		});
+
+		it('should return decoded text if string passed', function() {
+			should(utils.decodeHtmlEntities('?a=1&amp;v=2')).be.eql('?a=1&v=2');
 		});
 	});
 });

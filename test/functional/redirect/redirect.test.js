@@ -2,10 +2,10 @@ require('should');
 var nock = require('nock');
 var fs = require('fs-extra');
 var sinon = require('sinon');
-var Scraper = require('../../lib/scraper');
+var Scraper = require('../../../lib/scraper');
 
-var testDirname = __dirname + '/.redirects';
-var mockDirname = __dirname + '/mocks/redirects';
+var testDirname = __dirname + '/.tmp';
+var mockDirname = __dirname + '/mocks';
 
 describe('Functional redirects', function() {
 
@@ -43,7 +43,7 @@ describe('Functional redirects', function() {
 		var scraper = new Scraper(options);
 		var loadToFsSpy = sinon.spy(scraper.fsAdapter, 'saveResource');
 
-		return scraper.scrape(options).then(function() {
+		return scraper.scrape().then(function() {
 			loadToFsSpy.callCount.should.be.eql(2);
 			loadToFsSpy.args[0][0].filename.should.be.eql('index.html');
 			loadToFsSpy.args[1][0].filename.should.be.eql('true-page.html');
