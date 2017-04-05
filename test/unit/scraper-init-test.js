@@ -1,5 +1,5 @@
 var should = require('should');
-var proxyquire = require('proxyquire');
+var proxyquire = require('proxyquire').noCallThru();
 var sinon = require('sinon');
 var path = require('path');
 var Scraper = require('../../lib/scraper');
@@ -10,10 +10,10 @@ var urls = [ 'http://example.com' ];
 
 describe('Scraper initialization', function () {
 	describe('defaultFilename', function() {
-		var defaultsMock, Scraper;
+		var Scraper;
 
 		before(function() {
-			defaultsMock = { defaultFilename: 'dummyFilename.txt' };
+			var defaultsMock = { defaultFilename: 'dummyFilename.txt' };
 			Scraper = proxyquire('../../lib/scraper', {
 				'./config/defaults': defaultsMock
 			});
@@ -25,7 +25,7 @@ describe('Scraper initialization', function () {
 				directory: testDirname
 			});
 
-			s.options.defaultFilename.should.equalFileSystemPath(defaultsMock.defaultFilename);
+			s.options.defaultFilename.should.equalFileSystemPath('dummyFilename.txt');
 		});
 
 		it('should use defaultFilename sources if defaultFilename were passed', function () {
@@ -40,10 +40,10 @@ describe('Scraper initialization', function () {
 	});
 
 	describe('sources', function() {
-		var defaultsMock, Scraper;
+		var Scraper;
 
 		before(function() {
-			defaultsMock = { sources: ['1', '2', '3'] };
+			var defaultsMock = { sources: ['1', '2', '3'] };
 			Scraper = proxyquire('../../lib/scraper', {
 				'./config/defaults': defaultsMock
 			});
@@ -55,7 +55,7 @@ describe('Scraper initialization', function () {
 				directory: testDirname
 			});
 
-			s.options.sources.should.eql(defaultsMock.sources);
+			s.options.sources.should.eql(['1', '2', '3']);
 		});
 
 		it('should use passed sources if sources were passed', function () {
@@ -85,10 +85,10 @@ describe('Scraper initialization', function () {
 	});
 
 	describe('subdirectories', function () {
-		var defaultsMock, Scraper;
+		var Scraper;
 
 		before(function() {
-			defaultsMock = { directories: { directory: 'dir', extensions: ['.txt'] }, };
+			var defaultsMock = { subdirectories: [{ directory: 'dir', extensions: ['.txt'] }] };
 			Scraper = proxyquire('../../lib/scraper', {
 				'./config/defaults': defaultsMock
 			});
@@ -100,7 +100,20 @@ describe('Scraper initialization', function () {
 				directory: testDirname
 			});
 
-			s.options.subdirectories.should.eql(defaultsMock.subdirectories);
+			s.options.subdirectories.should.eql([{ directory: 'dir', extensions: ['.txt'] }]);
+		});
+
+		it('should convert extensions to lower case', function () {
+
+			var s = new Scraper({
+				urls: urls,
+				directory: testDirname,
+				subdirectories: [
+					{ directory: 'dir', extensions: ['.TXT'] }
+				]
+			});
+
+			s.options.subdirectories[0].extensions.should.eql(['.txt']);
 		});
 
 		it('should use passed subdirectories if subdirectories were passed', function () {
@@ -125,10 +138,10 @@ describe('Scraper initialization', function () {
 	});
 
 	describe('request', function () {
-		var defaultsMock, Scraper;
+		var Scraper;
 
 		before(function() {
-			defaultsMock = { request: { a: 1, b: 2 } };
+			var defaultsMock = { request: { a: 1, b: 2 } };
 			Scraper = proxyquire('../../lib/scraper', {
 				'./config/defaults': defaultsMock
 			});
@@ -140,7 +153,7 @@ describe('Scraper initialization', function () {
 				directory: testDirname
 			});
 
-			s.options.request.should.eql(defaultsMock.request);
+			s.options.request.should.eql({ a: 1, b: 2 });
 		});
 
 		it('should merge default and passed objects if request were passed', function () {
@@ -175,35 +188,6 @@ describe('Scraper initialization', function () {
 			s.options.request.should.eql({
 				a: 555,
 				b: 2
-			});
-		});
-	});
-
-	describe('makeRequest', function () {
-		it('should bind request object to makeRequest method', function() {
-			var requestStub = sinon.stub().resolves();
-			var Scraper = proxyquire('../../lib/scraper', {
-				'./request': requestStub,
-				'./config/defaults': {
-					request: {}
-				}
-			});
-
-			var reqOpts = {
-				headers: {
-					'User-Agent': 'Mozilla/5.0 (Linux; Android 4.2.1;'
-				}
-			};
-
-			var s = new Scraper({
-				urls: { url: 'http://first-url.com' },
-				directory: testDirname,
-				request: reqOpts
-			});
-
-			return s.makeRequest('http://example.com').then(function() {
-				requestStub.calledOnce.should.be.eql(true);
-				requestStub.calledWith(reqOpts).should.be.eql(true);
 			});
 		});
 	});

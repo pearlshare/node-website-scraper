@@ -1,14 +1,13 @@
+'use strict';
+
 var should = require('should');
 var sinon = require('sinon');
-require('sinon-as-promised');
 var nock = require('nock');
-var proxyquire = require('proxyquire');
+var proxyquire = require('proxyquire').noCallThru();
 var fs = require('fs-extra');
 var path = require('path');
-var _ = require('lodash');
 var Scraper = require('../../lib/scraper');
 var Resource = require('../../lib/resource');
-var Promise = require('bluebird');
 
 var testDirname = __dirname + '/.scraper-test';
 var urls = [ 'http://example.com' ];
@@ -386,6 +385,32 @@ describe('Scraper', function () {
 				s.handleError.calledOnce.should.be.eql(true);
 			});
 		});
+
+		it('should update resource data with data returned from request', () => {
+			let metadata = {
+				solarSystemPlanets: [ 'Mercury', 'Venus', 'Earth', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune' ]
+			};
+
+			let s = new Scraper({
+				urls: 'http://example.com',
+				directory: testDirname
+			});
+			s.request.get = sinon.stub().resolves({
+				url: 'http://google.com',
+				body: 'test body',
+				mimeType: 'text/html',
+				metadata: metadata
+			});
+
+			let r = new Resource('http://example.com');
+
+			return s.requestResource(r).finally(function() {
+				r.getText().should.be.eql('test body');
+				r.getUrl().should.be.eql('http://google.com');
+				r.getType().should.be.eql('html');
+				r.metadata.should.be.eql(metadata);
+			});
+		})
 	});
 
 	describe('#handleError', function() {
@@ -452,6 +477,16 @@ describe('Scraper', function () {
 				err.should.be.instanceOf(Error);
 				err.message.should.be.eql('Awful error');
 			});
+		});
+	});
+
+	describe('defaults', function() {
+		it('should export defaults', function() {
+			var defaultsMock = { subdirectories: null, recursive: true, sources: [] };
+			Scraper = proxyquire('../../lib/scraper', {
+				'./config/defaults': defaultsMock
+			});
+			should(Scraper.defaults).be.eql({ subdirectories: null, recursive: true, sources: [] });
 		});
 	});
 });
